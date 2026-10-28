@@ -250,4 +250,45 @@ SELECT
     ROUND((epoch(sh.delivered_at) - epoch(sh.shipped_at)) / 86400, 2) AS days_in_transit,
     ROUND((epoch(sh.delivered_at) - epoch(s.order_date))  / 86400, 2) AS days_to_delivery
 FROM raw.shipment AS sh
-JOIN fact_sales AS s ON s.order_id = sh.order_id;          
+JOIN fact_sales AS s ON s.order_id = sh.order_id;        
+
+-- ---------------------------------------------------------------------
+-- Hecho pagos: UNA FILA = UN PAGO
+-- ---------------------------------------------------------------------
+-- Permite conciliar ventas vs. pagos y analizar los métodos de pago
+-- (CARD, CASH, TRANSFER, GATEWAY = Mercado Pago). Cada pedido tiene un pago.
+-- Las claves se toman del pedido. paid_at queda vacío si no se cobró.
+-- is_collected = TRUE si el pago se cobró y no se devolvió (status PAID).
+CREATE TABLE fact_payment (
+    payment_id       BIGINT PRIMARY KEY,
+    order_id         BIGINT NOT NULL REFERENCES fact_sales (order_id),
+    date_key         INTEGER NOT NULL REFERENCES dim_date (date_key),      -- fecha del pedido
+    customer_key     INTEGER NOT NULL REFERENCES dim_customer (customer_key),
+    channel_key      INTEGER NOT NULL REFERENCES dim_channel (channel_key),
+    store_key        INTEGER REFERENCES dim_store (store_key),
+    province_key     INTEGER NOT NULL REFERENCES dim_province (province_key),
+    method           VARCHAR NOT NULL,                                     -- CARD / CASH / TRANSFER / GATEWAY
+    status           VARCHAR NOT NULL,                                     -- PENDING / PAID / FAILED / REFUNDED
+    is_collected     BOOLEAN NOT NULL,
+    paid_at          TIMESTAMP,
+    transaction_ref  VARCHAR,
+    amount           DECIMAL(12, 2) NOT NULL
+);
+
+INSERT INTO fact_payment
+SELECT
+    pa.payment_id,
+    pa.order_id,
+    s.date_key,
+    s.customer_key,
+    s.channel_key,
+    s.store_key,
+    s.province_key,
+    pa.method,
+    pa.status,
+    pa.status = 'PAID' AS is_collected,
+    pa.paid_at,
+    pa.transaction_ref,
+    pa.amount
+FROM raw.payment AS pa
+JOIN fact_sales AS s ON s.order_id = pa.order_id;                         -- toma las claves del pedido
