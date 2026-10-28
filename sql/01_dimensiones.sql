@@ -98,3 +98,27 @@ SELECT
     p.name,
     p.code
 FROM raw.province AS p;
+
+-- ---------------------------------------------------------------------
+-- Dimensión tienda: las 4 tiendas físicas (canal OFFLINE)
+-- ---------------------------------------------------------------------
+-- En raw/ la tienda apunta a una dirección y la dirección a una provincia.
+-- En la dimensión lo "aplanamos": cada tienda con su ciudad y su provincia.
+CREATE TABLE dim_store (
+    store_key      INTEGER PRIMARY KEY,
+    store_id       INTEGER NOT NULL,
+    name           VARCHAR NOT NULL,
+    city           VARCHAR,
+    province_name  VARCHAR
+);
+
+INSERT INTO dim_store
+SELECT
+    ROW_NUMBER() OVER (ORDER BY s.store_id) AS store_key,
+    s.store_id,
+    s.name,
+    a.city,
+    p.name AS province_name
+FROM raw.store AS s
+LEFT JOIN raw.address  AS a ON a.address_id  = s.address_id    -- dirección de la tienda
+LEFT JOIN raw.province AS p ON p.province_id = a.province_id;  -- provincia de esa dirección
