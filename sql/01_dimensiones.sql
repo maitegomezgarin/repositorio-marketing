@@ -122,3 +122,34 @@ SELECT
 FROM raw.store AS s
 LEFT JOIN raw.address  AS a ON a.address_id  = s.address_id    -- dirección de la tienda
 LEFT JOIN raw.province AS p ON p.province_id = a.province_id;  -- provincia de esa dirección
+
+-- ---------------------------------------------------------------------
+-- Dimensión cliente
+-- ---------------------------------------------------------------------
+-- Hay sesiones web y respuestas NPS anónimas (sin customer_id).
+-- Para no perderlas, se agrega una fila "Desconocido" con clave -1
+-- (tip del profesor). En los hechos se usa COALESCE(clave, -1).
+CREATE TABLE dim_customer (
+    customer_key  INTEGER PRIMARY KEY,
+    customer_id   INTEGER,              -- NULL en la fila "Desconocido"
+    first_name    VARCHAR,
+    last_name     VARCHAR,
+    full_name     VARCHAR,
+    status        VARCHAR,              -- A = activo, I = dio de baja su cuenta
+    created_at    TIMESTAMP
+);
+
+-- Fila para los anónimos
+INSERT INTO dim_customer VALUES (-1, NULL, NULL, NULL, 'Desconocido', NULL, NULL);
+
+-- Clientes reales
+INSERT INTO dim_customer
+SELECT
+    ROW_NUMBER() OVER (ORDER BY c.customer_id) AS customer_key,
+    c.customer_id,
+    c.first_name,
+    c.last_name,
+    c.first_name || ' ' || c.last_name AS full_name,
+    c.status,
+    c.created_at
+FROM raw.customer AS c;
