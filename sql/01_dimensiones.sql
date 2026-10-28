@@ -80,3 +80,21 @@ SELECT
     c.code,
     c.name
 FROM raw.channel AS c;
+
+-- ---------------------------------------------------------------------
+-- Dimensión provincia: Buenos Aires, Córdoba, Santa Fe y Mendoza
+-- ---------------------------------------------------------------------
+CREATE TABLE dim_province (
+    province_key  INTEGER PRIMARY KEY,
+    province_id   INTEGER NOT NULL,
+    name          VARCHAR NOT NULL,
+    code          VARCHAR
+);
+
+INSERT INTO dim_province
+SELECT
+    ROW_NUMBER() OVER (ORDER BY p.province_id) AS province_key,
+    p.province_id,
+    p.name,
+    p.code
+FROM raw.province AS p;
