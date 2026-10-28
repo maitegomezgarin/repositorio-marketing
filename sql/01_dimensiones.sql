@@ -153,3 +153,42 @@ SELECT
     c.status,
     c.created_at
 FROM raw.customer AS c;
+
+-- ---------------------------------------------------------------------
+-- Dimensión fecha: un día por fila, del 01/01/2024 al 30/09/2025
+-- ---------------------------------------------------------------------
+-- Es el rango de todos los hechos (pedidos, pagos, envíos, sesiones y NPS).
+-- range() no incluye la fecha final, por eso termina en 2025-10-01.
+-- date_key tiene el formato AAAAMMDD (ej. 20240131).
+CREATE TABLE dim_date (
+    date_key      INTEGER PRIMARY KEY,
+    date          DATE NOT NULL,
+    year          INTEGER NOT NULL,
+    quarter       INTEGER NOT NULL,    -- 1 a 4 (la meta es trimestral)
+    month         INTEGER NOT NULL,    -- 1 a 12
+    month_name    VARCHAR NOT NULL,    -- Enero, Febrero...
+    year_month    VARCHAR NOT NULL,    -- 2024-01 (para el ranking mensual)
+    day           INTEGER NOT NULL,
+    day_of_week   INTEGER NOT NULL,    -- 1 = lunes ... 7 = domingo
+    day_name      VARCHAR NOT NULL,    -- Lunes, Martes...
+    is_weekend    BOOLEAN NOT NULL
+);
+
+INSERT INTO dim_date
+SELECT
+    CAST(strftime(d.fecha, '%Y%m%d') AS INTEGER) AS date_key,
+    d.fecha AS date,
+    year(d.fecha) AS year,
+    quarter(d.fecha) AS quarter,
+    month(d.fecha) AS month,
+    ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio',
+     'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'][month(d.fecha)] AS month_name,
+    strftime(d.fecha, '%Y-%m') AS year_month,
+    day(d.fecha) AS day,
+    isodow(d.fecha) AS day_of_week,
+    ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'][isodow(d.fecha)] AS day_name,
+    isodow(d.fecha) IN (6, 7) AS is_weekend
+FROM (
+    SELECT CAST(range AS DATE) AS fecha
+    FROM range(DATE '2024-01-01', DATE '2025-10-01', INTERVAL 1 DAY)
+) AS d;
