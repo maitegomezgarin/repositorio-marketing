@@ -74,3 +74,47 @@ JOIN dim_province         AS pr ON pr.province_id = a.province_id
 JOIN dim_customer         AS cu ON cu.customer_id = o.customer_id
 JOIN dim_channel          AS ch ON ch.channel_id  = o.channel_id
 LEFT JOIN dim_store       AS st ON st.store_id    = o.store_id;          -- LEFT: online no tiene tienda
+
+-- ---------------------------------------------------------------------
+-- Hecho ventas (detalle): UNA FILA = UN PRODUCTO DENTRO DE UN PEDIDO
+-- ---------------------------------------------------------------------
+-- Fuente de: Ranking mensual de ventas por producto (suma de line_total).
+-- Repite las claves del pedido (fecha, cliente, canal, tienda, provincia)
+-- para poder filtrar el ranking igual que las ventas.
+-- No incluye total_amount: ese importe es del pedido y está en fact_sales.
+CREATE TABLE fact_sales_item (
+    order_item_id    BIGINT PRIMARY KEY,
+    order_id         BIGINT NOT NULL REFERENCES fact_sales (order_id),   -- pedido al que pertenece
+    date_key         INTEGER NOT NULL REFERENCES dim_date (date_key),
+    customer_key     INTEGER NOT NULL REFERENCES dim_customer (customer_key),
+    channel_key      INTEGER NOT NULL REFERENCES dim_channel (channel_key),
+    store_key        INTEGER REFERENCES dim_store (store_key),
+    province_key     INTEGER NOT NULL REFERENCES dim_province (province_key),
+    product_key      INTEGER NOT NULL REFERENCES dim_product (product_key),
+    status           VARCHAR NOT NULL,
+    is_sale          BOOLEAN NOT NULL,                                    -- TRUE si el pedido es PAID o FULFILLED
+    quantity         INTEGER NOT NULL,
+    unit_price       DECIMAL(12, 2) NOT NULL,
+    discount_amount  DECIMAL(12, 2) NOT NULL,
+    line_total       DECIMAL(12, 2) NOT NULL                              -- quantity * unit_price - discount_amount
+);
+
+INSERT INTO fact_sales_item
+SELECT
+    i.order_item_id,
+    i.order_id,
+    s.date_key,
+    s.customer_key,
+    s.channel_key,
+    s.store_key,
+    s.province_key,
+    p.product_key,
+    s.status,
+    s.is_sale,
+    i.quantity,
+    i.unit_price,
+    i.discount_amount,
+    i.line_total
+FROM raw.sales_order_item AS i
+JOIN fact_sales  AS s ON s.order_id   = i.order_id      -- toma las claves ya resueltas del pedido
+JOIN dim_product AS p ON p.product_id = i.product_id;
