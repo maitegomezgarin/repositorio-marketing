@@ -162,3 +162,46 @@ SELECT
 FROM raw.web_session AS w
 LEFT JOIN dim_customer AS cu ON cu.customer_id = w.customer_id          -- LEFT: hay visitas anónimas
 JOIN dim_channel       AS ch ON ch.code = 'ONLINE';                     -- todas las sesiones son web
+
+-- ---------------------------------------------------------------------
+-- Hecho NPS: UNA FILA = UNA RESPUESTA A LA ENCUESTA
+-- ---------------------------------------------------------------------
+-- Fuente de: NPS = (% puntajes 9-10  -  % puntajes 0-6) * 100.
+-- nps_value vale +100 (promotor), 0 (pasivo) o -100 (detractor):
+-- el PROMEDIO de nps_value es exactamente el NPS, con cualquier filtro.
+-- La encuesta no tiene número de pedido: se relaciona por cliente y canal.
+-- Las respuestas anónimas usan la fila "Desconocido" (customer_key = -1).
+CREATE TABLE fact_nps (
+    nps_id         BIGINT PRIMARY KEY,
+    date_key       INTEGER NOT NULL REFERENCES dim_date (date_key),
+    customer_key   INTEGER NOT NULL REFERENCES dim_customer (customer_key),
+    channel_key    INTEGER NOT NULL REFERENCES dim_channel (channel_key),
+    responded_at   TIMESTAMP NOT NULL,
+    score          INTEGER NOT NULL,                                     -- 0 a 10
+    nps_category   VARCHAR NOT NULL,                                     -- Promotor / Pasivo / Detractor
+    nps_value      INTEGER NOT NULL,                                     -- +100 / 0 / -100
+    comment        VARCHAR                                               -- vacío si no dejó comentario
+);
+
+INSERT INTO fact_nps
+SELECT
+    n.nps_id,
+    CAST(strftime(n.responded_at, '%Y%m%d') AS INTEGER) AS date_key,
+    COALESCE(cu.customer_key, -1) AS customer_key,
+    ch.channel_key,
+    n.responded_at,
+    n.score,
+    CASE
+        WHEN n.score >= 9 THEN 'Promotor'
+        WHEN n.score >= 7 THEN 'Pasivo'
+        ELSE 'Detractor'
+    END AS nps_category,
+    CASE
+        WHEN n.score >= 9 THEN 100
+        WHEN n.score >= 7 THEN 0
+        ELSE -100
+    END AS nps_value,
+    n.comment
+FROM raw.nps_response AS n
+LEFT JOIN dim_customer AS cu ON cu.customer_id = n.customer_id          -- LEFT: hay respuestas anónimas
+JOIN dim_channel       AS ch ON ch.channel_id  = n.channel_id;
