@@ -118,3 +118,47 @@ SELECT
 FROM raw.sales_order_item AS i
 JOIN fact_sales  AS s ON s.order_id   = i.order_id      -- toma las claves ya resueltas del pedido
 JOIN dim_product AS p ON p.product_id = i.product_id;
+
+-- ---------------------------------------------------------------------
+-- Hecho sesiones web: UNA FILA = UNA VISITA A LA WEB
+-- ---------------------------------------------------------------------
+-- Fuente de: Usuarios Activos.
+-- La consigna define Usuarios Activos como COUNT(DISTINCT customer_id),
+-- o session_id si la visita es anónima. Para contarlo con un solo campo,
+-- active_user_id vale 'C-<customer_id>' si hay cliente o 'S-<session_id>'
+-- si es anónima: COUNT(DISTINCT active_user_id) da el KPI.
+-- Las visitas anónimas usan la fila "Desconocido" (customer_key = -1).
+-- Todas las sesiones son de la web, por eso el canal es siempre ONLINE.
+CREATE TABLE fact_web_session (
+    session_id        BIGINT PRIMARY KEY,
+    date_key          INTEGER NOT NULL REFERENCES dim_date (date_key),
+    customer_key      INTEGER NOT NULL REFERENCES dim_customer (customer_key),
+    channel_key       INTEGER NOT NULL REFERENCES dim_channel (channel_key),
+    started_at        TIMESTAMP NOT NULL,
+    ended_at          TIMESTAMP,                                         -- vacío si no se registró el fin
+    source            VARCHAR,                                           -- ads / direct / referral / organic
+    device            VARCHAR,                                           -- mobile / desktop / tablet
+    is_anonymous      BOOLEAN NOT NULL,                                  -- TRUE si no inició sesión
+    active_user_id    VARCHAR NOT NULL,                                  -- para contar Usuarios Activos
+    duration_seconds  INTEGER                                            -- vacío si no hay ended_at
+);
+
+INSERT INTO fact_web_session
+SELECT
+    w.session_id,
+    CAST(strftime(w.started_at, '%Y%m%d') AS INTEGER) AS date_key,
+    COALESCE(cu.customer_key, -1) AS customer_key,
+    ch.channel_key,
+    w.started_at,
+    w.ended_at,
+    w.source,
+    w.device,
+    w.customer_id IS NULL AS is_anonymous,
+    CASE
+        WHEN w.customer_id IS NOT NULL THEN 'C-' || CAST(w.customer_id AS VARCHAR)
+        ELSE 'S-' || CAST(w.session_id AS VARCHAR)
+    END AS active_user_id,
+    CAST(epoch(w.ended_at) - epoch(w.started_at) AS INTEGER) AS duration_seconds
+FROM raw.web_session AS w
+LEFT JOIN dim_customer AS cu ON cu.customer_id = w.customer_id          -- LEFT: hay visitas anónimas
+JOIN dim_channel       AS ch ON ch.code = 'ONLINE';                     -- todas las sesiones son web
