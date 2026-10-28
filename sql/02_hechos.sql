@@ -205,3 +205,49 @@ SELECT
 FROM raw.nps_response AS n
 LEFT JOIN dim_customer AS cu ON cu.customer_id = n.customer_id          -- LEFT: hay respuestas anónimas
 JOIN dim_channel       AS ch ON ch.channel_id  = n.channel_id;
+
+-- ---------------------------------------------------------------------
+-- Hecho envíos: UNA FILA = UN ENVÍO POR CORREO
+-- ---------------------------------------------------------------------
+-- Fuente de: tiempos de entrega por provincia (meta del trimestre:
+-- reducir tiempos de entrega en Mendoza).
+-- Solo tienen envío los pedidos que viajan por correo (online y algunos
+-- que la tienda manda a domicilio). Las claves se toman del pedido.
+-- Los tiempos solo existen si el envío fue entregado (DELIVERED).
+CREATE TABLE fact_shipment (
+    shipment_id         BIGINT PRIMARY KEY,
+    order_id            BIGINT NOT NULL REFERENCES fact_sales (order_id),
+    date_key            INTEGER NOT NULL REFERENCES dim_date (date_key),   -- fecha del pedido
+    customer_key        INTEGER NOT NULL REFERENCES dim_customer (customer_key),
+    channel_key         INTEGER NOT NULL REFERENCES dim_channel (channel_key),
+    store_key           INTEGER REFERENCES dim_store (store_key),
+    province_key        INTEGER NOT NULL REFERENCES dim_province (province_key),
+    carrier             VARCHAR,
+    tracking_number     VARCHAR,
+    status              VARCHAR NOT NULL,                                  -- READY / SHIPPED / DELIVERED / CANCELLED
+    order_date          TIMESTAMP NOT NULL,
+    shipped_at          TIMESTAMP,
+    delivered_at        TIMESTAMP,
+    days_in_transit     DECIMAL(6, 2),                                     -- despacho -> entrega
+    days_to_delivery    DECIMAL(6, 2)                                      -- compra -> entrega
+);
+
+INSERT INTO fact_shipment
+SELECT
+    sh.shipment_id,
+    sh.order_id,
+    s.date_key,
+    s.customer_key,
+    s.channel_key,
+    s.store_key,
+    s.province_key,
+    sh.carrier,
+    sh.tracking_number,
+    sh.status,
+    s.order_date,
+    sh.shipped_at,
+    sh.delivered_at,
+    ROUND((epoch(sh.delivered_at) - epoch(sh.shipped_at)) / 86400, 2) AS days_in_transit,
+    ROUND((epoch(sh.delivered_at) - epoch(s.order_date))  / 86400, 2) AS days_to_delivery
+FROM raw.shipment AS sh
+JOIN fact_sales AS s ON s.order_id = sh.order_id;          
