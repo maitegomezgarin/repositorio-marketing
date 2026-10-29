@@ -1,0 +1,260 @@
+/* Tablero EcoBottle AR */
+
+:root {
+    --fondo: #f2f6fb;
+    --superficie: #ffffff;
+    --borde: #d8e2ee;
+    --texto: #14213d;
+    --texto-suave: #5a6782;
+    --azul-marino: #1b2f5b;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background: var(--fondo);
+    color: var(--texto);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.4;
+}
+
+.encabezado {
+    padding: 24px 32px 8px;
+}
+
+.encabezado h1 {
+    margin: 0 0 4px;
+    font-size: 24px;
+    color: var(--azul-marino);
+}
+
+.encabezado p {
+    margin: 0;
+    color: var(--texto-suave);
+}
+
+code {
+    font-size: 13px;
+}
+
+/* Filtros */
+.filtros {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 12px 16px;
+    margin: 16px 32px;
+    padding: 14px 16px;
+    background: var(--superficie);
+    border: 1px solid var(--borde);
+    border-radius: 10px;
+}
+
+.filtros label,
+.panel-titulo label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--texto-suave);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+input,
+select,
+button {
+    font: inherit;
+    font-size: 14px;
+    padding: 6px 8px;
+    border: 1px solid var(--borde);
+    border-radius: 6px;
+    background: var(--superficie);
+    color: var(--texto);
+}
+
+button {
+    cursor: pointer;
+    background: var(--azul-marino);
+    border-color: var(--azul-marino);
+    color: #ffffff;
+}
+
+.estado {
+    margin: 0 32px;
+    color: var(--texto-suave);
+}
+
+/* Tarjetas de KPIs */
+.tarjetas {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin: 0 32px 16px;
+}
+
+.tarjeta {
+    padding: 16px 20px;
+    background: var(--superficie);
+    border: 1px solid var(--borde);
+    border-top: 4px solid var(--azul-marino);
+    border-radius: 10px;
+}
+
+.tarjeta h2 {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--texto-suave);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.valor {
+    margin: 6px 0 2px;
+    font-size: 32px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.detalle {
+    margin: 0;
+    font-size: 13px;
+    color: var(--texto-suave);
+}
+
+/* Paneles con gráficos */
+.grilla {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin: 0 32px 24px;
+}
+
+.panel {
+    min-width: 0;
+    padding: 16px 20px;
+    background: var(--superficie);
+    border: 1px solid var(--borde);
+    border-radius: 10px;
+}
+
+.panel.ancho {
+    grid-column: 1 / -1;
+}
+
+.panel h2 {
+    margin: 0;
+    font-size: 16px;
+}
+
+.panel-titulo {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.nota {
+    margin: 2px 0 12px;
+    font-size: 12px;
+    color: var(--texto-suave);
+}
+
+.grafico {
+    position: relative;
+    height: 260px;
+}
+
+.panel.ancho .grafico {
+    height: 300px;
+}
+
+.conclusion {
+    margin: 12px 0 0;
+    font-size: 14px;
+}
+
+/* Tabla del ranking */
+.tabla-contenedor {
+    max-height: 260px;
+    overflow-y: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+}
+
+th,
+td {
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--borde);
+    text-align: left;
+}
+
+th {
+    position: sticky;
+    top: 0;
+    background: var(--superficie);
+    font-size: 12px;
+    color: var(--texto-suave);
+    text-transform: uppercase;
+}
+
+td .monto {
+    display: block;
+    font-size: 12px;
+    color: var(--texto-suave);
+}
+
+.pie {
+    padding: 0 32px 24px;
+    font-size: 12px;
+    color: var(--texto-suave);
+}
+
+/* Pantallas chicas */
+@media (max-width: 900px) {
+    .filtros {
+        position: static;
+    }
+
+    .tarjetas {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .grilla {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 520px) {
+    .encabezado,
+    .pie {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
+    .filtros,
+    .tarjetas,
+    .grilla,
+    .estado {
+        margin-left: 16px;
+        margin-right: 16px;
+    }
+
+    .tarjetas {
+        grid-template-columns: 1fr;
+    }
+}

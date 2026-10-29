@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoBottle AR · Tablero comercial</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="encabezado">
+        <h1>EcoBottle AR · Tablero comercial</h1>
+        <p>Ventas online y offline del 01/01/2024 al 30/09/2025 · Fuente: tablas del data warehouse (carpeta <code>dw/</code>)</p>
+    </header>
+
+    <!-- Filtros: fecha, canal, provincia y producto (pedidos por la consigna) -->
+    <section class="filtros" aria-label="Filtros">
+        <label>Desde <input type="date" id="f-desde" min="2024-01-01" max="2025-09-30" value="2024-01-01"></label>
+        <label>Hasta <input type="date" id="f-hasta" min="2024-01-01" max="2025-09-30" value="2025-09-30"></label>
+        <label>Canal <select id="f-canal"></select></label>
+        <label>Provincia <select id="f-provincia"></select></label>
+        <label>Producto <select id="f-producto"></select></label>
+        <button type="button" id="f-limpiar">Limpiar filtros</button>
+    </section>
+
+    <p class="estado" id="estado">Cargando datos…</p>
+
+    <main id="tablero" hidden>
+        <!-- Tarjetas de KPIs -->
+        <section class="tarjetas">
+            <article class="tarjeta">
+                <h2>Total Ventas</h2>
+                <p class="valor" id="kpi-ventas">—</p>
+                <p class="detalle" id="kpi-ventas-detalle"></p>
+            </article>
+            <article class="tarjeta">
+                <h2>Usuarios Activos</h2>
+                <p class="valor" id="kpi-usuarios">—</p>
+                <p class="detalle" id="kpi-usuarios-detalle"></p>
+            </article>
+            <article class="tarjeta">
+                <h2>Ticket Promedio</h2>
+                <p class="valor" id="kpi-ticket">—</p>
+                <p class="detalle" id="kpi-ticket-detalle"></p>
+            </article>
+            <article class="tarjeta">
+                <h2>NPS</h2>
+                <p class="valor" id="kpi-nps">—</p>
+                <p class="detalle" id="kpi-nps-detalle"></p>
+            </article>
+        </section>
+
+        <!-- Gráficos -->
+        <section class="grilla">
+            <article class="panel ancho">
+                <h2>Ventas por mes y canal</h2>
+                <p class="nota">Filtros: fecha, canal y provincia</p>
+                <div class="grafico"><canvas id="g-ventas"></canvas></div>
+            </article>
+
+            <article class="panel">
+                <h2>Usuarios activos por mes</h2>
+                <p class="nota">Filtros: fecha y canal (las visitas web son del canal ONLINE)</p>
+                <div class="grafico"><canvas id="g-usuarios"></canvas></div>
+            </article>
+
+            <article class="panel">
+                <h2>Tendencia del NPS</h2>
+                <p class="nota">Filtros: fecha y canal</p>
+                <div class="grafico"><canvas id="g-nps"></canvas></div>
+            </article>
+
+            <article class="panel">
+                <h2>Ventas por provincia</h2>
+                <p class="nota">Filtros: fecha y canal (se resalta la provincia elegida)</p>
+                <div class="grafico"><canvas id="g-provincias"></canvas></div>
+            </article>
+
+            <article class="panel">
+                <div class="panel-titulo">
+                    <h2>Ranking mensual por producto</h2>
+                    <label>Top <select id="f-top"></select></label>
+                </div>
+                <p class="nota">Filtros: fecha, canal, provincia y producto · Suma de line_total</p>
+                <div class="tabla-contenedor">
+                    <table>
+                        <thead id="ranking-encabezado"></thead>
+                        <tbody id="ranking-cuerpo"></tbody>
+                    </table>
+                </div>
+            </article>
+
+            <!-- Metas del trimestre (caso de uso) -->
+            <article class="panel">
+                <h2>Meta: crecer 15% las ventas en Córdoba</h2>
+                <p class="nota">Ventas por trimestre y variación contra el trimestre anterior · Filtro: canal</p>
+                <div class="grafico"><canvas id="g-cordoba"></canvas></div>
+                <p class="conclusion" id="meta-cordoba"></p>
+            </article>
+
+            <article class="panel">
+                <h2>Meta: reducir los tiempos de entrega en Mendoza</h2>
+                <p class="nota">Días promedio de la compra a la entrega, por trimestre · Filtro: canal</p>
+                <div class="grafico"><canvas id="g-mendoza"></canvas></div>
+                <p class="conclusion" id="meta-mendoza"></p>
+            </article>
+        </section>
+    </main>
+
+    <footer class="pie">
+        Ventas = pedidos PAID o FULFILLED · Montos en pesos argentinos con IVA y envío · Introducción al Marketing Online y los Negocios Digitales
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
